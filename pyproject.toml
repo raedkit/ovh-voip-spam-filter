@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ovh-voip-spam-filter"
+version = "0.1.0"
+description = "Generate an OVH VoIP blocklist CSV from the Saracroche community list (Phase 1: manual import)"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+authors = [{ name = "Raed KITAR" }]
+dependencies = []
+
+[project.scripts]
+ovh-spam-filter = "ovh_spam_filter.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ovh_spam_filter"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
