@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from ovh_spam_filter.ovh_csv import CSV_HEADER, render_csv, write_ovh_csv
+from ovh_voip_spam_filter.ovh_csv import CSV_HEADER, render_csv, write_ovh_csv
 
 
 def test_render_has_header_and_correct_row_format() -> None:

@@ -6,14 +6,13 @@ no matter what's currently on OVH (anti-regression).
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import patch
 
-from ovh_spam_filter import arcep, reconcile, saracroche
-from ovh_spam_filter.patterns import BlockPattern
-from ovh_spam_filter.reconcile import CurrentEntry, SyncMode
-
+from ovh_voip_spam_filter import arcep, reconcile, saracroche
+from ovh_voip_spam_filter.reconcile import CurrentEntry, SyncMode
 
 # ---------- fake client ----------
 
@@ -21,8 +20,11 @@ from ovh_spam_filter.reconcile import CurrentEntry, SyncMode
 @dataclass
 class _FakeClient:
     """Records calls; returns canned state."""
+
     existing: list[CurrentEntry] = field(default_factory=list)
-    screen_state: dict[str, str] = field(default_factory=lambda: {"incomingScreenList": "blacklist"})
+    screen_state: dict[str, str] = field(
+        default_factory=lambda: {"incomingScreenList": "blacklist"}
+    )
     added: list[str] = field(default_factory=list)
     removed: list[int] = field(default_factory=list)
     screen_state_writes: list[dict[str, Any]] = field(default_factory=list)
@@ -40,7 +42,9 @@ class _FakeClient:
                 return {"id": e.id, "callNumber": e.call_number, "nature": e.nature, "type": e.type}
         return {}
 
-    def add_screen_list_entry(self, ba, sn, *, call_number, nature="international", type_="incomingBlackList"):
+    def add_screen_list_entry(
+        self, ba, sn, *, call_number, nature="international", type_="incomingBlackList"
+    ):
         self.added.append(call_number)
 
     def delete_screen_list_entry(self, ba, sn, entry_id):
@@ -65,8 +69,12 @@ def test_normal_mode_adds_missing_and_removes_disappeared() -> None:
         SyncMode.NORMAL,
         target_prefixes=["+33162", "+33270", "+33377"],
         current=[
-            CurrentEntry(id=1, call_number="+33162", nature="international", type="incomingBlackList"),
-            CurrentEntry(id=2, call_number="+33999", nature="international", type="incomingBlackList"),
+            CurrentEntry(
+                id=1, call_number="+33162", nature="international", type="incomingBlackList"
+            ),
+            CurrentEntry(
+                id=2, call_number="+33999", nature="international", type="incomingBlackList"
+            ),
         ],
     )
     assert plan.to_add == ["+33270", "+33377"]
@@ -78,8 +86,12 @@ def test_normal_mode_idempotent_when_in_sync() -> None:
         SyncMode.NORMAL,
         target_prefixes=["+33162", "+33270"],
         current=[
-            CurrentEntry(id=1, call_number="+33162", nature="international", type="incomingBlackList"),
-            CurrentEntry(id=2, call_number="+33270", nature="international", type="incomingBlackList"),
+            CurrentEntry(
+                id=1, call_number="+33162", nature="international", type="incomingBlackList"
+            ),
+            CurrentEntry(
+                id=2, call_number="+33270", nature="international", type="incomingBlackList"
+            ),
         ],
     )
     assert plan.to_add == []
@@ -92,8 +104,12 @@ def test_normal_mode_ignores_whitelist_and_other_types() -> None:
         SyncMode.NORMAL,
         target_prefixes=["+33162"],
         current=[
-            CurrentEntry(id=1, call_number="+33999", nature="international", type="incomingWhiteList"),
-            CurrentEntry(id=2, call_number="+33888", nature="international", type="outgoingBlackList"),
+            CurrentEntry(
+                id=1, call_number="+33999", nature="international", type="incomingWhiteList"
+            ),
+            CurrentEntry(
+                id=2, call_number="+33888", nature="international", type="outgoingBlackList"
+            ),
         ],
     )
     # No incomingBlackList present → just add target, never touch the others
@@ -113,7 +129,7 @@ def test_degraded_mode_never_removes_even_if_extras_exist() -> None:
     existing = [
         CurrentEntry(id=i, call_number=cn, nature="international", type="incomingBlackList")
         for i, cn in enumerate(
-            arcep_prefixes + ["+33189123", "+33449", "+33756"],  # extras from a richer Saracroche
+            [*arcep_prefixes, "+33189123", "+33449", "+33756"],  # extras from a richer Saracroche
             start=1,
         )
     ]
@@ -146,13 +162,17 @@ def test_degraded_mode_adds_missing_arcep_prefixes() -> None:
 
 
 def test_ensure_blacklist_enabled_noop_when_already_blacklist() -> None:
-    client = _FakeClient(screen_state={"incomingScreenList": "blacklist", "outgoingScreenList": "disabled"})
+    client = _FakeClient(
+        screen_state={"incomingScreenList": "blacklist", "outgoingScreenList": "disabled"}
+    )
     reconcile.ensure_blacklist_enabled(client, "ba", "sn")
     assert client.screen_state_writes == []
 
 
 def test_ensure_blacklist_enabled_promotes_disabled_preserving_outgoing() -> None:
-    client = _FakeClient(screen_state={"incomingScreenList": "disabled", "outgoingScreenList": "whitelist"})
+    client = _FakeClient(
+        screen_state={"incomingScreenList": "disabled", "outgoingScreenList": "whitelist"}
+    )
     reconcile.ensure_blacklist_enabled(client, "ba", "sn")
     assert client.screen_state_writes == [{"incoming": "blacklist", "outgoing": "whitelist"}]
     assert client.screen_state["incomingScreenList"] == "blacklist"
@@ -162,9 +182,13 @@ def test_ensure_blacklist_enabled_promotes_disabled_preserving_outgoing() -> Non
 
 
 def test_apply_plan_emits_expected_adds_and_removes() -> None:
-    client = _FakeClient(existing=[
-        CurrentEntry(id=99, call_number="+33999", nature="international", type="incomingBlackList"),
-    ])
+    client = _FakeClient(
+        existing=[
+            CurrentEntry(
+                id=99, call_number="+33999", nature="international", type="incomingBlackList"
+            ),
+        ]
+    )
     plan = reconcile.ReconcilePlan(
         mode=SyncMode.NORMAL,
         target_prefixes=["+33162"],
@@ -179,16 +203,56 @@ def test_apply_plan_emits_expected_adds_and_removes() -> None:
     assert result.removed == 1
 
 
+def test_apply_plan_logs_progress_counter(caplog) -> None:
+    """Each Add/Remove log includes a (N/total) progress counter."""
+    caplog.set_level(logging.INFO, logger="ovh_voip_spam_filter.reconcile")
+
+    client = _FakeClient(
+        existing=[
+            CurrentEntry(
+                id=10, call_number="+33999", nature="international", type="incomingBlackList"
+            ),
+            CurrentEntry(
+                id=11, call_number="+33998", nature="international", type="incomingBlackList"
+            ),
+        ]
+    )
+    plan = reconcile.ReconcilePlan(
+        mode=SyncMode.NORMAL,
+        target_prefixes=["+33162", "+33270", "+33377"],
+        current_entries=client.existing,
+        to_add=["+33162", "+33270", "+33377"],
+        to_remove=client.existing,
+    )
+    reconcile.apply_plan(client, "ba", "sn", plan)
+
+    add_logs = [r.getMessage() for r in caplog.records if "Added" in r.getMessage()]
+    assert add_logs == [
+        "Added +33162 (1/3)",
+        "Added +33270 (2/3)",
+        "Added +33377 (3/3)",
+    ]
+    remove_logs = [r.getMessage() for r in caplog.records if "Removed" in r.getMessage()]
+    assert remove_logs == [
+        "Removed id=10 callNumber=+33999 (1/2)",
+        "Removed id=11 callNumber=+33998 (2/2)",
+    ]
+
+
 # ---------- load_target with mocked Saracroche ----------
 
 
 def test_load_target_normal_when_saracroche_ok() -> None:
     fake_snap = saracroche.SaracrocheSnapshot(
-        version="2026-05-20", name="t", total_patterns=2,
-        raw={"patterns": [
-            {"name": "Préfixe démarchage ARCEP", "action": "block", "pattern": "33162######"},
-            {"name": "Spam W3tel", "action": "identify", "pattern": "3397837####"},
-        ]},
+        version="2026-05-20",
+        name="t",
+        total_patterns=2,
+        raw={
+            "patterns": [
+                {"name": "Préfixe démarchage ARCEP", "action": "block", "pattern": "33162######"},
+                {"name": "Spam W3tel", "action": "identify", "pattern": "3397837####"},
+            ]
+        },
     )
     with patch.object(saracroche, "fetch_from_api", return_value=fake_snap):
         target = reconcile.load_target()

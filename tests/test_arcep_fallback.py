@@ -1,8 +1,7 @@
 import pytest
 
-from ovh_spam_filter.arcep import arcep_fallback_patterns
-from ovh_spam_filter.patterns import deduplicate_ovh_prefixes
-
+from ovh_voip_spam_filter.arcep import arcep_fallback_patterns
+from ovh_voip_spam_filter.patterns import deduplicate_ovh_prefixes
 
 REPORTED_NUMBERS = [
     "+33270502261",

@@ -1,0 +1,19 @@
+/* Custom tweaks for ovh-voip-spam-filter docs site */
+
+:root > * {
+  --md-primary-fg-color: #4051b5;
+  --md-primary-fg-color--light: #5c6bc0;
+  --md-primary-fg-color--dark: #303f9f;
+}
+
+.md-typeset .admonition.recommended {
+  border-color: #4caf50;
+}
+.md-typeset .recommended > .admonition-title {
+  background-color: rgba(76, 175, 80, 0.12);
+}
+.md-typeset .recommended > .admonition-title::before {
+  background-color: #4caf50;
+  -webkit-mask-image: var(--md-admonition-icon--tip);
+          mask-image: var(--md-admonition-icon--tip);
+}

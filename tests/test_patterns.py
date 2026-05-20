@@ -1,4 +1,4 @@
-from ovh_spam_filter.patterns import (
+from ovh_voip_spam_filter.patterns import (
     BlockPattern,
     deduplicate_ovh_prefixes,
     prioritize,

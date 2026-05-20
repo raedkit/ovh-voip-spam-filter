@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/api-reference/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/api-reference/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/api-reference/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/changelog/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/changelog/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/configuration/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/configuration/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/contributing/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/contributing/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/docker/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/docker/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/docker/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/pypi/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/pypi/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/pypi/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/quickstart/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/quickstart/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/quickstart/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/reconciliation/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/reconciliation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/reconciliation/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/roadmap/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/roadmap/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/roadmap/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/security/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/security/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/security/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/api-reference/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/api-reference/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/api-reference/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/changelog/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/changelog/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/configuration/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/configuration/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/contributing/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/contributing/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/docker/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/docker/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/docker/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/pypi/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/pypi/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/pypi/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/quickstart/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/quickstart/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/quickstart/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/reconciliation/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/reconciliation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/reconciliation/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/roadmap/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/roadmap/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/roadmap/"/>
+    </url>
+    <url>
+        <loc>https://raedkit.github.io/ovh-voip-spam-filter/fr/security/</loc>
+        <lastmod>2026-05-20</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="https://raedkit.github.io/ovh-voip-spam-filter/fr/security/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://raedkit.github.io/ovh-voip-spam-filter/security/"/>
+    </url>
+</urlset>

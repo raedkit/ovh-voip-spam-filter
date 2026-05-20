@@ -1,0 +1,121 @@
+site_name: ovh-voip-spam-filter
+site_description: Reconcile your OVH SIP incoming blacklist with the Saracroche community list.
+site_url: https://raedkit.github.io/ovh-voip-spam-filter/
+repo_url: https://github.com/raedkit/ovh-voip-spam-filter
+repo_name: raedkit/ovh-voip-spam-filter
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tracking
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.suggest
+    - search.highlight
+    - search.share
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: 🇬🇧 English
+          build: true
+        - locale: fr
+          name: 🇫🇷 Français
+          build: true
+          nav_translations:
+            Home: Accueil
+            Quickstart: Démarrage rapide
+            Configuration: Configuration
+            Docker: Docker
+            PyPI: PyPI
+            Reconciliation semantics: Sémantique de réconciliation
+            API reference: Référence API
+            Roadmap: Feuille de route
+            Contributing: Contribuer
+            Security: Sécurité
+            Changelog: Journal des modifications
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+  - git-revision-date-localized:
+      enable_creation_date: false
+      type: iso_date
+      fallback_to_build_date: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/raedkit/ovh-voip-spam-filter
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Configuration: configuration.md
+  - Docker: docker.md
+  - PyPI: pypi.md
+  - Reconciliation semantics: reconciliation.md
+  - API reference: api-reference.md
+  - Roadmap: roadmap.md
+  - Contributing: contributing.md
+  - Security: security.md
+  - Changelog: changelog.md

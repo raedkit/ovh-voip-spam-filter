@@ -1,0 +1,64 @@
+name: Bug report
+description: Report a defect in ovh-voip-spam-filter
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in as much as you can — it helps a lot.
+
+        ⚠️ **Do not include real credentials**. The OVH `application_key`, `application_secret`, or `consumer_key` should never appear in a public issue. If you accidentally exposed them, revoke them immediately at https://eu.api.ovh.com/me/api/credential
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `ovh-voip-spam-filter --version` or the Docker image tag.
+      placeholder: "v0.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: How are you running it?
+      options:
+        - Docker (GHCR image)
+        - PyPI (pip install)
+        - From source (git clone + pip install -e)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including relevant log output.
+      placeholder: |
+        I ran `sync` and...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: I expected ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Set env vars X, Y, Z
+        2. Run `ovh-voip-spam-filter sync ...`
+        3. Observe ...
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste relevant log output (redact any secrets first). Use code fences (```).
+      render: shell

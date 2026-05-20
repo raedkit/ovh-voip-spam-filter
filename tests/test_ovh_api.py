@@ -12,8 +12,8 @@ from urllib.error import HTTPError
 
 import pytest
 
-from ovh_spam_filter import ovh_api
-from ovh_spam_filter.ovh_api import OvhApiError, OvhClient, OvhCredentials
+from ovh_voip_spam_filter import ovh_api
+from ovh_voip_spam_filter.ovh_api import OvhApiError, OvhClient, OvhCredentials
 
 
 def _creds(consumer_key: str | None = "ck-test") -> OvhCredentials:
@@ -219,18 +219,16 @@ def test_429_exhausts_retries_then_raises() -> None:
         _rand=lambda: 0.5,
     )
     err = _http_error(429)
-    with patch("urllib.request.urlopen", side_effect=err):
-        with pytest.raises(OvhApiError) as ei:
-            client.get("/anything")
+    with patch("urllib.request.urlopen", side_effect=err), pytest.raises(OvhApiError) as ei:
+        client.get("/anything")
     assert ei.value.status == 429
 
 
 def test_non_429_error_propagates_immediately() -> None:
     client = OvhClient(_creds(), _sleep=lambda _: None)
     err = _http_error(403, body=b'{"message":"forbidden"}')
-    with patch("urllib.request.urlopen", side_effect=err):
-        with pytest.raises(OvhApiError) as ei:
-            client.get("/anything")
+    with patch("urllib.request.urlopen", side_effect=err), pytest.raises(OvhApiError) as ei:
+        client.get("/anything")
     assert ei.value.status == 403
     assert "forbidden" in str(ei.value)
 
@@ -250,7 +248,9 @@ def test_add_screen_list_entry_posts_correct_body() -> None:
 
     with patch("urllib.request.urlopen", side_effect=fake_urlopen):
         client.add_screen_list_entry(
-            "ab-12345-ovh", "0033xxxxxxxx", call_number="+33162",
+            "ab-12345-ovh",
+            "0033xxxxxxxx",
+            call_number="+33162",
         )
 
     assert captured["method"] == "POST"

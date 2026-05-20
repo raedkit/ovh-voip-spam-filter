@@ -1,10 +1,8 @@
-import json
 from pathlib import Path
 
 import pytest
 
-from ovh_spam_filter import saracroche
-
+from ovh_voip_spam_filter import saracroche
 
 FIXTURE = {
     "version": "2026-05-20T01:00:53+00:00",

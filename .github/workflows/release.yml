@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write       # for gh release create
+  packages: write       # for GHCR push
+  id-token: write       # for PyPI Trusted Publisher OIDC
+
+jobs:
+  docker-publish:
+    name: Build & push Docker image to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/ovh-voip-spam-filter
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=ovh-voip-spam-filter
+            org.opencontainers.image.description=Reconcile OVH SIP incoming blacklist with the Saracroche community list
+            org.opencontainers.image.licenses=GPL-3.0-or-later
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://${{ github.repository_owner }}.github.io/ovh-voip-spam-filter/
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  pypi-publish:
+    name: Publish to PyPI (Trusted Publisher OIDC)
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ovh-voip-spam-filter/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [docker-publish, pypi-publish]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract changelog for this tag
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          # Pull the section under "## [X.Y.Z]" until the next "## [" header.
+          awk -v ver="[$VERSION]" '
+            $0 ~ "^## "ver { inSection=1; next }
+            inSection && /^## \[/ { inSection=0 }
+            inSection { print }
+          ' CHANGELOG.md > release-notes.md
+          echo "Notes for $VERSION:" >&2
+          cat release-notes.md >&2
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF#refs/tags/}" \
+            --title "${GITHUB_REF#refs/tags/}" \
+            --notes-file release-notes.md

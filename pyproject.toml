@@ -4,22 +4,118 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ovh-voip-spam-filter"
-version = "0.1.0"
-description = "Generate an OVH VoIP blocklist CSV from the Saracroche community list (Phase 1: manual import)"
+version = "0.2.0"
+description = "Reconcile your OVH SIP incoming blacklist with the Saracroche community list — Docker image + Python CLI."
+readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [{ name = "Raed KITAR" }]
+keywords = ["ovh", "voip", "sip", "spam", "blocklist", "saracroche", "arcep", "telephony", "démarchage"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Communications :: Telephony",
+    "Topic :: Internet",
+    "Topic :: Utilities",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Natural Language :: English",
+    "Natural Language :: French",
+]
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/raedkit/ovh-voip-spam-filter"
+Documentation = "https://raedkit.github.io/ovh-voip-spam-filter/"
+Repository = "https://github.com/raedkit/ovh-voip-spam-filter"
+Issues = "https://github.com/raedkit/ovh-voip-spam-filter/issues"
+Changelog = "https://github.com/raedkit/ovh-voip-spam-filter/blob/main/CHANGELOG.md"
+
 [project.scripts]
-ovh-spam-filter = "ovh_spam_filter.cli:main"
+ovh-voip-spam-filter = "ovh_voip_spam_filter.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocs-static-i18n>=1.2",
+    "mkdocstrings[python]>=0.26",
+    "mkdocs-git-revision-date-localized-plugin>=1.2",
+]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ovh_spam_filter"]
+packages = ["src/ovh_voip_spam_filter"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "tests/",
+    "LICENSE",
+    "README.md",
+    "README.fr.md",
+    "CHANGELOG.md",
+    "pyproject.toml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = [".venv", "build", "dist", "output", "cache", "site"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "RUF",  # ruff-specific
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "TID",  # tidy imports
+    "PT",   # pytest
+    "PL",   # pylint subset
+    "PERF", # perflint
+]
+ignore = [
+    "E501",   # handled by formatter
+    "PLR0913", # too many arguments — fine for CLI handlers
+    "PLR2004", # magic numbers in tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004", "S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/ovh_voip_spam_filter"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true

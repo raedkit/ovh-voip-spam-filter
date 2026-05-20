@@ -1,146 +1,120 @@
+<div align="center">
+
 # ovh-voip-spam-filter
 
-Reconciles your OVH SIP incoming-blacklist with the [Saracroche](https://saracroche.org) community list (ARCEP démarchage prefixes + opérateurs réputés spam).
+🇬🇧 **English** · [🇫🇷 Français](README.fr.md)
 
-Two delivery modes:
+**Reconcile your OVH SIP incoming blacklist with [Saracroche](https://saracroche.org), the community-driven blocklist of ~16 million French telemarketing numbers.**
 
-- **Phase 1 — manual CSV** (`generate`): produces a file you import in the OVH Manager. Useful for first-time setup or quick experimentation. Fallback cascade live API → local cache → hard-coded ARCEP.
-- **Phase 2 — API push** (`sync`): authenticates against OVH and reconciles the line state automatically, with rate-limit-aware throttling and 429 backoff. Designed to run non-interactively as a Docker container (and later as a Kubernetes CronJob).
+[![CI](https://github.com/raedkit/ovh-voip-spam-filter/actions/workflows/ci.yml/badge.svg)](https://github.com/raedkit/ovh-voip-spam-filter/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/raedkit/ovh-voip-spam-filter?display_name=tag&sort=semver)](https://github.com/raedkit/ovh-voip-spam-filter/releases)
+[![GHCR](https://img.shields.io/badge/ghcr.io-ovh--voip--spam--filter-blue?logo=docker)](https://github.com/raedkit/ovh-voip-spam-filter/pkgs/container/ovh-voip-spam-filter)
+[![PyPI](https://img.shields.io/pypi/v/ovh-voip-spam-filter)](https://pypi.org/project/ovh-voip-spam-filter/)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue?logo=python)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-green)](LICENSE)
 
-Phase 3 backlog (K8s manifests, extra user blacklist, multi-line, etc.) lives in [docs/phase3-roadmap.md](docs/phase3-roadmap.md).
+📖 **Full documentation: [raedkit.github.io/ovh-voip-spam-filter](https://raedkit.github.io/ovh-voip-spam-filter/)**
 
-## Quickstart — manual CSV (Phase 1)
+</div>
 
-```bash
-python -m ovh_spam_filter generate
-# -> output/blocklist-ovh.csv
-```
+---
 
-Then in the OVH Manager → Téléphonie → your SIP line → **Filtrage des appels** → **Importer** and select that CSV.
+> [!WARNING]
+> **Use the API (`sync`), not the CSV.**
+> The OVH Manager's CSV import **fails past ~80 entries** (empirically confirmed). This project exists to push the same data through the OVH API one prefix at a time, throttled and idempotent. The CSV mode is kept for completeness but is **not** the recommended path.
 
-⚠️ The OVH UI can return **HTTP 429** on large CSV imports (it POSTs each row internally without throttling). If that happens, use the API push below — it's the same data, just delivered call-by-call with proper rate limiting.
-
-## Quickstart — API push (Phase 2)
-
-### 1. Generate an OVH token (once)
-
-Open this URL — rules are pre-filled, choose unlimited validity for permanent personal use:
-
-```
-https://api.ovh.com/createToken/?GET=/me&GET=/telephony&GET=/telephony/*&GET=/telephony/*/screen&GET=/telephony/*/screen/*&GET=/telephony/*/screen/*/screenLists&GET=/telephony/*/screen/*/screenLists/*&PUT=/telephony/*/screen/*&POST=/telephony/*/screen/*/screenLists&DELETE=/telephony/*/screen/*/screenLists/*
-```
-
-OVH returns three values: `Application Key`, `Application Secret`, `Consumer Key`.
-
-### 2. Discover your billing account and SIP line
+## Quickstart
 
 ```bash
 docker run --rm \
-  -e OVH_APPLICATION_KEY=... -e OVH_APPLICATION_SECRET=... -e OVH_CONSUMER_KEY=... \
-  ovh-spam-filter:dev discover
+  -e OVH_APPLICATION_KEY=... \
+  -e OVH_APPLICATION_SECRET=... \
+  -e OVH_CONSUMER_KEY=... \
+  -e OVH_BILLING_ACCOUNT=... \
+  -e OVH_SERVICE_NAME=... \
+  ghcr.io/raedkit/ovh-voip-spam-filter:latest sync
 ```
 
-Note the `billing_account` and `service_name` you want to target.
-
-### 3. Dry-run
+Or via PyPI:
 
 ```bash
-docker run --rm \
-  -e OVH_APPLICATION_KEY=... -e OVH_APPLICATION_SECRET=... -e OVH_CONSUMER_KEY=... \
-  -e OVH_BILLING_ACCOUNT=ab-12345-ovh -e OVH_SERVICE_NAME=0033xxxxxxxx \
-  ovh-spam-filter:dev sync --dry-run
+pip install ovh-voip-spam-filter
+ovh-voip-spam-filter sync
 ```
 
-Prints the diff (to add / to remove / kept) and the estimated duration. No POST is sent.
+Generate an OVH token with [this pre-filled URL](https://api.ovh.com/createToken/?GET=/me&GET=/telephony&GET=/telephony/*&GET=/telephony/*/screen&GET=/telephony/*/screen/*&GET=/telephony/*/screen/*/screenLists&GET=/telephony/*/screen/*/screenLists/*&PUT=/telephony/*/screen/*&POST=/telephony/*/screen/*/screenLists&DELETE=/telephony/*/screen/*/screenLists/*) (minimum scopes pre-checked).
 
-### 4. Actual sync
+Full setup walkthrough: **[docs/quickstart](https://raedkit.github.io/ovh-voip-spam-filter/quickstart/)**.
 
-```bash
-docker run --rm \
-  -e OVH_APPLICATION_KEY=... -e OVH_APPLICATION_SECRET=... -e OVH_CONSUMER_KEY=... \
-  -e OVH_BILLING_ACCOUNT=ab-12345-ovh -e OVH_SERVICE_NAME=0033xxxxxxxx \
-  ovh-spam-filter:dev sync
+## Why this exists
+
+OVH's Manager UI offers a CSV import for the incoming blacklist, but it POSTs each row internally without rate-limiting. The Saracroche list is **643 prefixes** — the import returns HTTP 429 after ~80. This tool does the same job correctly: signed API requests, client-side throttle, exponential backoff on 429, auto-adaptation if OVH tightens the quota. One bootstrap run takes ~13 minutes; subsequent runs are idempotent and take seconds.
+
+## How it works
+
+```
+            ┌────────────────────────────┐
+            │  Saracroche live API       │
+            │  (~643 block-only prefixes)│
+            └─────────────┬──────────────┘
+                          │  fallback when down
+                          ▼
+            ┌────────────────────────────┐
+            │  Hard-coded ARCEP fallback │
+            │  (23 prefixes, additive)   │
+            └─────────────┬──────────────┘
+                          ▼
+            ┌────────────────────────────┐
+            │  Diff vs current OVH state │
+            │  (GET-first reconciliation)│
+            └─────────────┬──────────────┘
+                          ▼
+            ┌────────────────────────────┐
+            │  Signed OVH API push       │
+            │  (throttled, 429-aware)    │
+            └────────────────────────────┘
 ```
 
-Bootstrap takes ~11 minutes at the default 1 req/s (643 entries). Subsequent runs only POST the changes — typically a few seconds.
+- **Normal mode** (Saracroche reachable) — strict sync: adds missing prefixes, removes the ones Saracroche removed.
+- **Degraded mode** (Saracroche unreachable) — uses the hard-coded ARCEP fallback, **additive only**, never deletes. Anti-regression guarantee.
 
-### Build the image locally
+Details: **[reconciliation semantics](https://raedkit.github.io/ovh-voip-spam-filter/reconciliation/)**.
 
-```bash
-docker build -t ovh-spam-filter:dev .
-```
+## Acknowledgments
 
-## Configuration
+🙏 **This project would not exist without [Saracroche](https://saracroche.org) by [Camille Bouvat](https://github.com/cbouvat).**
 
-| Env var | Required | Default | Meaning |
-|---|---|---|---|
-| `OVH_ENDPOINT` | no | `ovh-eu` | `ovh-eu` / `ovh-ca` / `ovh-us` |
-| `OVH_APPLICATION_KEY` | yes (sync/discover) | — | from `createToken` |
-| `OVH_APPLICATION_SECRET` | yes (sync/discover) | — | from `createToken` |
-| `OVH_CONSUMER_KEY` | yes (sync/discover) | — | from `createToken` |
-| `OVH_BILLING_ACCOUNT` | yes (sync) | — | from `discover` |
-| `OVH_SERVICE_NAME` | yes (sync) | — | from `discover` |
-| `RATE_LIMIT_MS` | no | `1000` | min ms between API calls |
-| `LOG_LEVEL` | no | `INFO` | `DEBUG` / `INFO` / `WARNING` / `ERROR` |
+Saracroche is an open-source community blocklist of ~16 million French telemarketing and spam numbers, maintained solo and pro bono since 2020. We consume the [`french-list-arcep-operators`](https://saracroche.org/api/v1/lists/french-list-arcep-operators) endpoint as our primary source of truth, with no caching on the redistribution side — the freshness you get is whatever Saracroche has right now.
 
-For local CLI use, a `.ovh-credentials.json` file at the repo root is also supported (gitignored, takes lower priority than env vars):
+If this tool saved you from a spam call, **please support Camille**:
 
-```json
-{
-  "endpoint": "ovh-eu",
-  "application_key": "...",
-  "application_secret": "...",
-  "consumer_key": "...",
-  "billing_account": "ab-12345-ovh",
-  "service_name": "0033xxxxxxxx"
-}
-```
+- 💛 [Liberapay](https://liberapay.com/cbouvat) (preferred)
+- 💳 [Stripe / one-shot](https://saracroche.org)
+- 🐙 [GitHub Sponsors](https://github.com/cbouvat)
 
-## Reconciliation semantics
+Saracroche source:
 
-- **Normal mode** (Saracroche reachable): strict sync. POST the prefixes missing on OVH, DELETE the entries on OVH that are no longer in Saracroche. Manual entries you may have added through the OVH UI **will be deleted** (the reconciliation loop is the source of truth).
-- **Degraded mode** (Saracroche unreachable): fall back to a hard-coded list of ARCEP démarchage prefixes (23 entries, 100% coverage of legal French telemarketing). **Additive-only — never deletes.** Partial knowledge could otherwise wipe out the rich list pushed during the last normal run.
-- The mode is detected automatically — no flag.
+- 📱 Apps: [iOS](https://apps.apple.com/fr/app/saracroche/id6743679292) · [Android](https://play.google.com/store/apps/details?id=com.cbouvat.android.saracroche)
+- 🦊 Code: [Codeberg (android)](https://codeberg.org/cbouvat/saracroche-android) · [GitHub (legacy)](https://github.com/cbouvat)
 
-## Commands
+## Documentation
 
-```bash
-ovh-spam-filter generate [--output PATH] [--cache PATH] [--max-entries N] [--offline]
-ovh-spam-filter status   [--cache PATH]
-ovh-spam-filter discover
-ovh-spam-filter sync     [--dry-run] [--rate-limit-ms N]
-```
+Full docs at **[raedkit.github.io/ovh-voip-spam-filter](https://raedkit.github.io/ovh-voip-spam-filter/)**:
 
-## CSV format (Phase 1)
+- [Quickstart](https://raedkit.github.io/ovh-voip-spam-filter/quickstart/) — token generation, discover, sync
+- [Configuration](https://raedkit.github.io/ovh-voip-spam-filter/configuration/) — env vars, CLI flags, Kubernetes
+- [Docker](https://raedkit.github.io/ovh-voip-spam-filter/docker/) — image details, multi-arch, CronJob sketch
+- [PyPI](https://raedkit.github.io/ovh-voip-spam-filter/pypi/) — install + library usage
+- [Reconciliation](https://raedkit.github.io/ovh-voip-spam-filter/reconciliation/) — normal vs degraded mode
+- [API reference](https://raedkit.github.io/ovh-voip-spam-filter/api-reference/)
+- [Roadmap](https://raedkit.github.io/ovh-voip-spam-filter/roadmap/)
 
-OVH accepts three columns, comma-separated, prefixes allowed in `callNumber`:
+## Contributing
 
-```csv
-callNumber,nature,type
-+33162,international,incomingBlackList
-+33270,international,incomingBlackList
-```
+PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the PR checklist. By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-`+33162` blocks every number starting with `01 62`.
-
-## Why this works
-
-Since 2022-09-01, the ARCEP reserved prefixes `01 62/63`, `02 70/71`, `03 77/78`, `04 24/25`, `05 68/69`, `09 48/49` exclusively to commercial telemarketing. Saracroche merges these with operator prefixes known for 100 % spam traffic. Blocking the union at the SIP line level neutralises virtually all *legal* French telemarketing.
-
-## Rate limiting details
-
-- Throttling is enforced **client-side** between every signed call.
-- On 429 responses, the client respects the `Retry-After` header if present, otherwise applies a jittered exponential backoff (1, 2, 4, 8, 16, 30s, ±20% jitter, capped at 30s).
-- After 3 consecutive 429s on the same session, the throttle interval is **doubled permanently** for the rest of the session (auto-adaptation — OVH's exact telephony quota is undocumented and may be stricter than the 60 req/min advertised for Public Cloud).
-
-## Development
-
-```bash
-python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest      # 55 tests
-.venv/bin/python -m ovh_spam_filter generate
-```
+Security issues: see [SECURITY.md](SECURITY.md). Please don't open public issues for credential-handling bugs.
 
 ## License
 
-GPLv3 (matches Saracroche, whose data we redistribute).
+[GPL-3.0-or-later](LICENSE) — matches Saracroche.

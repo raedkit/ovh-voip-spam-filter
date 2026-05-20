@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an enhancement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening: take a look at [`docs/roadmap.md`](https://github.com/raedkit/ovh-voip-spam-filter/blob/main/docs/roadmap.md) — your idea may already be there.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the use case, not the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your proposed solution
+      description: How would you like it to work? Examples (CLI args, env vars, config) help.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Other approaches you weighed and why this one is preferable.

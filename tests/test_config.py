@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ovh_spam_filter import config
+from ovh_voip_spam_filter import config
 
 
 @pytest.fixture(autouse=True)
@@ -24,7 +24,9 @@ def _isolate_env(monkeypatch):
 def test_env_takes_precedence_over_file(monkeypatch, tmp_path: Path) -> None:
     cfg_file = tmp_path / "creds.json"
     cfg_file.write_text(
-        json.dumps({"application_key": "from-file", "application_secret": "fs", "consumer_key": "fc"}),
+        json.dumps(
+            {"application_key": "from-file", "application_secret": "fs", "consumer_key": "fc"}
+        ),
         encoding="utf-8",
     )
     monkeypatch.setenv("OVH_APPLICATION_KEY", "from-env")

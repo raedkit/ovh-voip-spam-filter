@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/raedkit/ovh-voip-spam-filter/security/advisories/new
+    about: Report a security issue privately (see SECURITY.md). Please do NOT open a public issue.
+  - name: Saracroche blocklist false positives or false negatives
+    url: https://saracroche.org
+    about: |
+      This project consumes Saracroche's number list. If a number is wrongly blocked
+      or a spammer isn't blocked, the right place to report it is Saracroche directly.

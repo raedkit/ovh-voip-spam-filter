@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    "schedule:weekly"
+  ],
+  "labels": ["dependencies"],
+  "rebaseWhen": "behind-base-branch",
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "description": "Group Python deps into a single PR",
+      "matchManagers": ["pip_requirements", "pep621"],
+      "groupName": "python deps"
+    },
+    {
+      "description": "Group GitHub Actions into a single PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Group Dockerfile base updates into a single PR",
+      "matchManagers": ["dockerfile"],
+      "groupName": "docker base image"
+    },
+    {
+      "description": "Auto-merge minor/patch updates of dev tools",
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["ruff", "mypy", "pytest", "mkdocs", "mkdocs-material"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": false
+  }
+}
