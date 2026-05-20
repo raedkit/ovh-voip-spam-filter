@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from ovh_spam_filter import arcep, saracroche
+from ovh_spam_filter import arcep, compact, saracroche
 from ovh_spam_filter.ovh_csv import write_ovh_csv
 from ovh_spam_filter.patterns import (
     BlockPattern,
@@ -97,6 +97,17 @@ def _format_age(seconds: float | None) -> str:
     return f"{seconds / 86400:.1f}d"
 
 
+def _parse_compact_flag(value: str):
+    if value == "none":
+        return None
+    if value == "safe":
+        return compact.compact_safe
+    if value.startswith("lossy:"):
+        threshold = int(value.split(":", 1)[1])
+        return lambda prefixes: compact.compact_lossy(prefixes, threshold=threshold)
+    raise SystemExit(f"Unknown --compact value: {value!r} (expected none|safe|lossy:N)")
+
+
 def cmd_generate(args: argparse.Namespace) -> int:
     cache_path = Path(args.cache)
     output_path = Path(args.output)
@@ -128,6 +139,16 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
     if len(raw_prefixes) != len(prefixes):
         print(f"  Deduplicated {len(raw_prefixes) - len(prefixes)} redundant subprefixes")
+
+    compaction = _parse_compact_flag(args.compact)
+    if compaction is not None:
+        before = len(prefixes)
+        prefixes = compaction(prefixes)
+        # Compaction can introduce new subsumption (a parent merge may make a
+        # longer sibling redundant), so dedup again.
+        prefixes = deduplicate_ovh_prefixes(prefixes)
+        if len(prefixes) < before:
+            print(f"  Compacted {before} -> {len(prefixes)} ({args.compact})")
 
     if args.max_entries is not None and len(prefixes) > args.max_entries:
         print(f"  Truncating {len(prefixes)} -> {args.max_entries} (ARCEP entries protected by ordering)")
@@ -187,6 +208,11 @@ def main(argv: list[str] | None = None) -> int:
     p_gen.add_argument("--cache", default=str(DEFAULT_CACHE), help="Cache JSON path")
     p_gen.add_argument("--max-entries", type=int, default=None, help="Truncate to N rows (ARCEP first)")
     p_gen.add_argument("--offline", action="store_true", help="Skip network, use cache or ARCEP fallback")
+    p_gen.add_argument(
+        "--compact",
+        default="none",
+        help="Compaction strategy: none | safe | lossy:N (N in [2,10], 10 == safe)",
+    )
     p_gen.set_defaults(func=cmd_generate)
 
     p_status = sub.add_parser("status", help="Inspect cache freshness and API reachability")
