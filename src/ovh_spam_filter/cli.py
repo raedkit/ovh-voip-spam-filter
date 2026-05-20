@@ -1,4 +1,11 @@
-"""Command-line interface for the OVH VoIP spam-filter blocklist generator."""
+"""Command-line interface for the OVH VoIP spam-filter blocklist generator.
+
+Subcommands:
+  generate  Phase 1 — write the OVH CSV (file cache supported, for manual import).
+  status    Phase 1 — inspect Saracroche cache freshness and API reachability.
+  discover  Phase 2 — list OVH billing accounts and screen-capable lines.
+  sync      Phase 2 — reconcile OVH blacklist with Saracroche (push API, throttled).
+"""
 
 from __future__ import annotations
 
@@ -9,13 +16,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from ovh_spam_filter import arcep, saracroche
+from ovh_spam_filter import arcep, config, logging_setup, ovh_api, reconcile, saracroche
 from ovh_spam_filter.ovh_csv import write_ovh_csv
 from ovh_spam_filter.patterns import (
     BlockPattern,
     deduplicate_ovh_prefixes,
     prioritize,
 )
+
+logger = logging_setup.get(__name__)
 
 DEFAULT_OUTPUT = Path("output/blocklist-ovh.csv")
 DEFAULT_CACHE = Path("cache/saracroche-latest.json")
@@ -30,6 +39,11 @@ REPORTED_NUMBERS = [
 ]
 
 SourceUsed = Literal["api", "cache", "arcep-hardcoded"]
+
+
+# ============================================================================
+# Phase 1 commands (CSV-based, kept unchanged)
+# ============================================================================
 
 
 @dataclass
@@ -152,6 +166,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
     print(f"Cache file: {cache_path}")
     age = saracroche.cache_age_seconds(cache_path)
+    cached: saracroche.SaracrocheSnapshot | None = None
     if age is None:
         print("  Status: ABSENT")
     else:
@@ -167,7 +182,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     try:
         snap = saracroche.fetch_from_api(timeout=10)
         print(f"  OK: version {snap.version}, {snap.total_patterns} patterns")
-        if age is not None and cached.version != snap.version:
+        if cached is not None and cached.version != snap.version:
             print("  ! Cache is stale -- run `generate` to refresh")
     except saracroche.FetchError as exc:
         print(f"  FAIL: {exc}")
@@ -175,14 +190,155 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+# ============================================================================
+# Phase 2 commands (API push, K8s-target)
+# ============================================================================
+
+
+def _build_client(cfg: config.AppConfig) -> ovh_api.OvhClient:
+    creds = config.require_signed_credentials(cfg)
+    return ovh_api.OvhClient(
+        credentials=creds,
+        min_interval_seconds=cfg.rate_limit_ms / 1000.0,
+    )
+
+
+def cmd_discover(args: argparse.Namespace) -> int:
+    cfg = config.load()
+    logging_setup.setup(cfg.log_level)
+    client = _build_client(cfg)
+
+    try:
+        client.whoami()
+    except ovh_api.OvhApiError as exc:
+        logger.error("Credentials check failed: %s", exc)
+        return 1
+
+    billing_accounts = client.list_billing_accounts()
+    if not billing_accounts:
+        logger.warning("No telephony billing accounts visible with these credentials")
+        return 0
+
+    print(f"Found {len(billing_accounts)} billing account(s):")
+    for ba in billing_accounts:
+        print(f"\n  billing_account = {ba}")
+        try:
+            services = client.list_screen_services(ba)
+        except ovh_api.OvhApiError as exc:
+            print(f"    (failed to list screen services: {exc})")
+            continue
+        if not services:
+            print("    (no screen-capable services)")
+            continue
+        for sn in services:
+            print(f"    service_name    = {sn}")
+    print(
+        "\nCopy the chosen pair into env:"
+        "\n  OVH_BILLING_ACCOUNT=<billing_account>"
+        "\n  OVH_SERVICE_NAME=<service_name>"
+    )
+    return 0
+
+
+def cmd_sync(args: argparse.Namespace) -> int:
+    cfg = config.load()
+    logging_setup.setup(cfg.log_level)
+
+    if args.rate_limit_ms is not None:
+        cfg = _override_rate_limit(cfg, args.rate_limit_ms)
+
+    try:
+        billing_account, service_name = config.require_target(cfg)
+    except config.ConfigError as exc:
+        logger.error("%s", exc)
+        return 1
+
+    target = reconcile.load_target()
+    target_prefixes = reconcile.target_to_prefixes(target)
+    logger.info(
+        "Target: %d prefixes (mode=%s)", len(target_prefixes), target.mode.value,
+    )
+
+    client = _build_client(cfg)
+    try:
+        me = client.whoami()
+        logger.info("Authenticated as nichandle=%s", me.get("nichandle", "?"))
+    except ovh_api.OvhApiError as exc:
+        logger.error("Auth check failed (%s) — aborting", exc)
+        return 1
+
+    try:
+        reconcile.ensure_blacklist_enabled(client, billing_account, service_name)
+    except ovh_api.OvhApiError as exc:
+        logger.error("Failed to set screen state to blacklist: %s — aborting", exc)
+        return 1
+
+    try:
+        current = reconcile.load_current(client, billing_account, service_name)
+    except ovh_api.OvhApiError as exc:
+        logger.error("Failed to read current screenLists: %s — aborting", exc)
+        return 1
+
+    plan = reconcile.compute_plan(target.mode, target_prefixes, current)
+    logger.info("Plan: %s", reconcile.summarize_plan(plan, cfg.rate_limit_ms))
+
+    if args.dry_run:
+        _print_plan_preview(plan)
+        logger.info("Dry-run only — no changes applied")
+        return 0
+
+    if not plan.to_add and not plan.to_remove:
+        logger.info("Already in sync, nothing to do (idempotent run)")
+        return 0
+
+    result = reconcile.apply_plan(client, billing_account, service_name, plan)
+    logger.info(
+        "Sync complete: added=%d removed=%d failed=%d duration=%.1fs throttle_adapts=%d",
+        result.added, result.removed, result.failed, result.duration_seconds,
+        result.throttle_adaptations,
+    )
+    if result.failed:
+        logger.warning("%d operation(s) failed; next run will retry (idempotent)", result.failed)
+    return 0
+
+
+def _override_rate_limit(cfg: config.AppConfig, rate_limit_ms: int) -> config.AppConfig:
+    return config.AppConfig(
+        credentials=cfg.credentials,
+        billing_account=cfg.billing_account,
+        service_name=cfg.service_name,
+        rate_limit_ms=rate_limit_ms,
+        log_level=cfg.log_level,
+    )
+
+
+def _print_plan_preview(plan: reconcile.ReconcilePlan) -> None:
+    print(f"\nReconcile plan (mode={plan.mode.value}):")
+    print(f"  to add    ({len(plan.to_add)} entries):")
+    for p in plan.to_add[:10]:
+        print(f"    + {p}")
+    if len(plan.to_add) > 10:
+        print(f"    ... and {len(plan.to_add) - 10} more")
+    print(f"  to remove ({len(plan.to_remove)} entries):")
+    for e in plan.to_remove[:10]:
+        print(f"    - id={e.id} {e.call_number}")
+    if len(plan.to_remove) > 10:
+        print(f"    ... and {len(plan.to_remove) - 10} more")
+
+
+# ============================================================================
+# Entry point
+# ============================================================================
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ovh-spam-filter",
-        description="Generate an OVH VoIP blocklist CSV from the Saracroche community list.",
+        description="Reconcile your OVH SIP blacklist with the Saracroche community list.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_gen = sub.add_parser("generate", help="Fetch Saracroche and write the OVH CSV")
+    p_gen = sub.add_parser("generate", help="Write the OVH CSV (Phase 1, manual import)")
     p_gen.add_argument("--output", default=str(DEFAULT_OUTPUT), help="Output CSV path")
     p_gen.add_argument("--cache", default=str(DEFAULT_CACHE), help="Cache JSON path")
     p_gen.add_argument("--max-entries", type=int, default=None, help="Truncate to N rows (ARCEP first)")
@@ -192,6 +348,21 @@ def main(argv: list[str] | None = None) -> int:
     p_status = sub.add_parser("status", help="Inspect cache freshness and API reachability")
     p_status.add_argument("--cache", default=str(DEFAULT_CACHE), help="Cache JSON path")
     p_status.set_defaults(func=cmd_status)
+
+    p_discover = sub.add_parser("discover", help="List OVH billing accounts and screen-capable lines")
+    p_discover.set_defaults(func=cmd_discover)
+
+    p_sync = sub.add_parser(
+        "sync", help="Reconcile OVH blacklist with Saracroche (strict in normal mode, additive in degraded)",
+    )
+    p_sync.add_argument("--dry-run", action="store_true", help="Show the plan without applying it")
+    p_sync.add_argument(
+        "--rate-limit-ms",
+        type=int,
+        default=None,
+        help="Min ms between API calls (default from RATE_LIMIT_MS env or 1000)",
+    )
+    p_sync.set_defaults(func=cmd_sync)
 
     args = parser.parse_args(argv)
     return args.func(args)
